@@ -1,0 +1,20 @@
+[project]
+name = "nanobot"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.14.2"
+dependencies = [
+    "pydantic",
+    "nanobot-ai",
+    "opentelemetry-distro[otlp]>=0.61b0",
+    "opentelemetry-exporter-otlp-proto-grpc>=1.40.0",
+    "opentelemetry-instrumentation-logging>=0.61b0",
+    
+    # Uncomment these later in the lab after you add the matching repos/packages.
+    
+    # "mcp-lms",
+    # "mcp-obs",
+    # "mcp-webchat",
+    # "nanobot-webchat",
+]
