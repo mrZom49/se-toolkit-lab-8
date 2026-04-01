@@ -27,6 +27,8 @@ Start by reading the [official nanobot repository](https://github.com/HKUDS/nano
    uv init nanobot
    ```
 
+   Then uncomment `"nanobot"` and `nanobot = { workspace = true, editable = true }` in the root `pyproject.toml` (marked with `Task 1`) so the workspace recognizes the new project.
+
 2. Enter the repo-local project directory:
 
    ```terminal
