@@ -60,11 +60,70 @@ Paste your checkpoint evidence below. Add screenshots as image files in the repo
 
 ## Task 2A — Deployed agent
 
-<!-- Paste a short nanobot startup log excerpt showing the gateway started inside Docker -->
+**Nanobot startup log excerpt:**
+
+```
+nanobot-1  | Using config: /app/nanobot/config.resolved.json
+nanobot-1  | 🐈 Starting nanobot gateway version 0.1.4.post5 on port 18790...
+nanobot-1  | 2026-04-02 13:27:31.693 | INFO     | nanobot.channels.manager:_init_channels:58 - WebChat channel enabled
+nanobot-1  | ✓ Channels enabled: webchat
+nanobot-1  | ✓ Heartbeat: every 1800s
+nanobot-1  | 2026-04-02 13:27:34.607 | INFO     | nanobot.agent.tools.mcp:connect_mcp_servers:246 - MCP server 'webchat': connected, 1 tools registered
+nanobot-1  | 2026-04-02 13:27:34.607 | INFO     | nanobot.agent.loop:run:280 - Agent loop started
+```
+
+**Service status:**
+
+```
+NAME                                STATUS
+se-toolkit-lab-8-nanobot-1          Up 19 minutes
+```
+
+The nanobot gateway is running as a Docker Compose service with:
+- WebChat channel enabled on port 8765
+- MCP server 'webchat' connected (provides `mcp_webchat_ui_message` tool)
+- Agent loop started and processing messages
+
+---
 
 ## Task 2B — Web client
 
-<!-- Screenshot of a conversation with the agent in the Flutter web app -->
+**WebSocket endpoint test:**
+
+The WebSocket endpoint at `ws://localhost:42002/ws/chat?access_key=1234` is accessible through Caddy's reverse proxy.
+
+**Flutter web client:**
+
+- Accessible at `http://<vm-ip>:42002/flutter`
+- Protected by `NANOBOT_ACCESS_KEY` authentication
+- Build output mounted in Caddy at `/srv/flutter`
+
+**Recent agent activity (from logs):**
+
+```
+nanobot-1  | 2026-04-02 14:05:09.851 | INFO     | nanobot.agent.loop:_prepare_tools:253 - Tool call: exec({"command": "ps aux | grep -i mcp | head -10"})
+nanobot-1  | 2026-04-02 14:05:32.799 | INFO     | nanobot.agent.subagent:_run_subagent:91 - Subagent [4bb4e8d8] starting task: Get LMS labs list
+nanobot-1  | 2026-04-02 14:05:39.219 | INFO     | nanobot.agent.loop:_process_message:479 - Response to webchat:ff4ea0e2-214f-4640-ac73-de7f22333368: I've started a background task to query the LMS backend for available labs...
+```
+
+**Architecture implemented:**
+
+```
+browser -> caddy (port 42002) -> nanobot webchat channel (port 8765) -> nanobot gateway (port 18790) -> mcp_lms -> backend
+nanobot gateway -> qwen-code-api -> Qwen
+nanobot gateway -> mcp_webchat -> nanobot webchat UI relay -> browser
+```
+
+**Files modified:**
+
+| File | Purpose |
+|------|---------|
+| `nanobot/entrypoint.py` | Resolves env vars into config, launches `nanobot gateway` |
+| `nanobot/Dockerfile` | Multi-stage uv build, runs as non-root user |
+| `nanobot/config.json` | Configures webchat channel and MCP servers |
+| `docker-compose.yml` | nanobot, client-web-flutter, caddy services |
+| `caddy/Caddyfile` | `/ws/chat` reverse proxy, `/flutter` static files |
+| `nanobot-websocket-channel/` | Git submodule with webchat channel, mcp-webchat, Flutter client |
 
 ## Task 3A — Structured logging
 
