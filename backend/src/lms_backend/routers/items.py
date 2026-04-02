@@ -21,12 +21,12 @@ async def get_items(session: AsyncSession = Depends(get_session)):
         return await read_items(session)
     except Exception as exc:
         logger.warning(
-            "items_list_failed_as_not_found",
-            extra={"event": "items_list_failed_as_not_found"},
+            "items_list_failed",
+            extra={"event": "items_list_failed", "error": str(exc)},
         )
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Items not found",
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Backend error: {exc}",
         ) from exc
 
 

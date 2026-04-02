@@ -187,15 +187,128 @@ nanobot gateway -> mcp_webchat -> nanobot webchat UI relay -> browser
 
 ## Task 4A — Multi-step investigation
 
-<!-- Paste the agent's response to "What went wrong?" showing chained log + trace investigation -->
+**Agent response to "What went wrong?" (triggered after asking "What labs are available?" with PostgreSQL down):**
+
+> The LMS backend is currently **unhealthy** and unable to serve lab data.
+>
+> **Issue:** Database connection failure
+> - Error: `[Errno -2] Name or service not known` - the backend cannot reach the PostgreSQL database
+> - Service: Learning Management Service
+> - Trace ID: 3250d9275fee7a22ecb0eb8e924de086
+>
+> The logs show a db_query error where the backend tried to connect to the database but failed. The traces confirm this is a connection failure to the database service.
+
+**Investigation flow observed in nanobot logs:**
+1. `mcp_lms_lms_labs({})` - tried to get labs
+2. `mcp_lms_lms_health({})` - checked health
+3. `mcp_mcp-obs_mcp_obs_logs_error_count(...)` - found errors
+4. `mcp_mcp-obs_mcp_obs_logs_search(...)` - searched logs
+5. `mcp_mcp-obs_mcp_obs_traces_get(...)` - fetched trace
+
+**Key discrepancy noticed:** The backend returns `404 Items not found` even though the real issue is a database connection failure (PostgreSQL is down).
 
 ## Task 4B — Proactive health check
 
-<!-- Screenshot or transcript of the proactive health report that appears in the Flutter chat -->
+**Health check job created:**
+- Job ID: 4818e617
+- Interval: Every 2 minutes (120 seconds)
+- Command: "Check for backend errors in the last 2 minutes using observability tools, inspect traces if errors found, and post a summary"
+
+**Initial health check response (first run):**
+```
+mcp_mcp-obs_mcp_obs_logs_error_count({"service": "Learning Management Service", "time_window": "2m"})
+-> Found 5 errors
+
+mcp_mcp-obs_mcp_obs_logs_search(...)
+-> Retrieved error details with trace_id
+
+mcp_mcp-obs_mcp_obs_traces_get({"trace_id": "a8d8472a4422adb47f0805eb80f8027a"})
+-> Fetched trace for investigation
+```
+
+**Proactive report from scheduled cron (second cycle at 16:39 UTC):**
+The cron job executed and found:
+- "Errors (last 2 min): 1" (fresh error from our latest test)
+- Used logs_error_count → logs_search → traces_get chain
+- Attempted to post via mcp_webchat_ui_message
+
+Note: The WebChat channel shows "no connection for chat_id" warnings because the test was run from Python script rather than the Flutter UI. In a real Flutter chat session, the proactive report would appear directly in the chat.
+
+**Screenshot/transcript:**
+```
+## 🐾 LMS Health Check Report
+**Status:** ⚠️ Error detected in last 2 minutes
+### Error Summary
+- Count: 1 error
+- Details: Database connection issue
+- Service: Learning Management Service
+- Trace ID: 29950a56048aa07b68a6646a11aea591
+```
 
 ## Task 4C — Bug fix and recovery
 
-<!-- 1. Root cause identified
-     2. Code fix (diff or description)
-     3. Post-fix response to "What went wrong?" showing the real underlying failure
-     4. Healthy follow-up report or transcript after recovery -->
+### 1. Root cause - What was the planted bug?
+
+**Location:** `backend/src/lms_backend/routers/items.py` lines 17-30
+
+The bug was in the `get_items` exception handler. When the database query failed (e.g., PostgreSQL down), the code was catching ALL exceptions and returning a misleading `404 Items not found` response:
+
+```python
+# BEFORE (buggy):
+except Exception as exc:
+    logger.warning(
+        "items_list_failed_as_not_found",
+        extra={"event": "items_list_failed_as_not_found"},
+    )
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail="Items not found",  # <-- WRONG! This hides the real error
+    ) from exc
+```
+
+This made it appear as if there were no items in the database, when in reality the database was unreachable.
+
+### 2. Fix - What was changed?
+
+```python
+# AFTER (fixed):
+except Exception as exc:
+    logger.warning(
+        "items_list_failed",
+        extra={"event": "items_list_failed", "error": str(exc)},
+    )
+    raise HTTPException(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        detail=f"Backend error: {exc}",  # <-- Reports the real error
+    ) from exc
+```
+
+Changes:
+- Changed HTTP status from `404` to `503 Service Unavailable`
+- Changed detail message from `"Items not found"` to the actual error message
+- Added the error string to the logger for better observability
+
+### 3. Post-fix failure check - "What went wrong?" after redeploy
+
+With PostgreSQL still down, the agent now correctly reports:
+- **Before fix:** "404 Items not found" (misleading)
+- **After fix:** "503 Backend error: [Errno -2] Name or service not known" (accurate)
+
+```
+HTTP Status: 503
+{"detail":"Backend error: [Errno -2] Name or service not known"}
+```
+
+The agent's observability investigation now shows the real underlying database connection failure instead of a fake "not found" error.
+
+### 4. Healthy follow-up - System recovery
+
+After restarting PostgreSQL:
+```bash
+curl -H "Authorization: Bearer 1234" http://127.0.0.1:42001/items/
+# Returns: [] (normal empty response, no error)
+```
+
+The backend now correctly returns:
+- HTTP 200 OK when database is accessible
+- HTTP 503 with real error message when database is unavailable (PostgreSQL down)
