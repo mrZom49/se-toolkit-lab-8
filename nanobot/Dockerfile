@@ -11,6 +11,7 @@ COPY --from=workspace uv.lock /app/
 COPY --from=webchat nanobot-websocket-channel /app/nanobot-websocket-channel
 COPY --from=mcp mcp /app/mcp
 COPY --from=mcp mcp/mcp-lms/pyproject.toml /app/mcp/mcp-lms/pyproject.toml
+COPY --from=mcp mcp/mcp-obs/pyproject.toml /app/mcp/mcp-obs/pyproject.toml
 COPY pyproject.toml /app/nanobot/pyproject.toml
 
 RUN --mount=type=cache,target=/root/.cache/uv \

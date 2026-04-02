@@ -127,15 +127,63 @@ nanobot gateway -> mcp_webchat -> nanobot webchat UI relay -> browser
 
 ## Task 3A — Structured logging
 
-<!-- Paste happy-path and error-path log excerpts, VictoriaLogs query screenshot -->
+**Happy-path log excerpt (request_started → request_completed with status 200):**
+```
+2026-04-02 15:58:35,504 INFO [lms_backend.main] [main.py:62] [trace_id=f75835f24b92615c805f1cfd5b730d22 span_id=d2dbe9dfeda8c95c resource.service.name=Learning Management Service trace_sampled=True] - request_started
+2026-04-02 15:58:35,506 INFO [lms_backend.auth] [auth.py:30] [trace_id=f75835f24b92615c805f1cfd5b730d22 span_id=d2dbe9dfeda8c95c resource.service.name=Learning Management Service trace_sampled=True] - auth_success
+2026-04-02 15:58:35,507 INFO [lms_backend.db.items] [items.py:16] [trace_id=f75835f24b92615c805f1cfd5b730d22 span_id=d2dbe9dfeda8c95c resource.service.name=Learning Management Service trace_sampled=True] - db_query
+2026-04-02 15:58:35,705 INFO [lms_backend.main] [main.py:74] [trace_id=f75835f24b92615c805f1cfd5b730d22 span_id=d2dbe9dfeda8c95c resource.service.name=Learning Management Service trace_sampled=True] - request_completed
+```
+
+**Error-path log excerpt (db_query with error):**
+```
+2026-04-02 15:58:10,785 INFO [lms_backend.main] [main.py:62] [trace_id=36dcee934fd5269b17136bbb9c8a2811 span_id=7c84490a3ae6df18 resource.service.name=Learning Management Service trace_sampled=True] - request_started
+2026-04-02 15:58:10,787 INFO [lms_backend.auth] [auth.py:30] [trace_id=36dcee934fd5269b17136bbb9c8a2811 span_id=7c84490a3ae6df18 resource.service.name=Learning Management Service trace_sampled=True] - auth_success
+2026-04-02 15:58:10,787 INFO [lms_backend.db.items] [items.py:16] [trace_id=36dcee934fd5269b17136bbb9c8a2811 span_id=7c84490a3ae6df18 resource.service.name=Learning Management Service trace_sampled=True] - db_query
+2026-04-02 15:58:10,823 ERROR [lms_backend.db.items] [items.py:23] [trace_id=36dcee934fd5269b17136bbb9c8a2811 span_id=7c84490a3ae6df18 resource.service.name=Learning Management Service trace_sampled=True] - db_query
+2026-04-02 15:58:10,825 INFO [lms_backend.main] [main.py:74] [trace_id=36dcee934fd5269b17136bbb9c8a2811 span_id=7c84490a3ae6df18 resource.service.name=Learning Management Service trace_sampled=True] - request_completed
+```
+
+**VictoriaLogs UI query result:**
+- Query: `_time:10m service.name:"Learning Management Service" severity:ERROR`
+- Error details from VictoriaLogs:
+  - `error`: "(sqlalchemy.dialects.postgresql.asyncpg.InterfaceError) <class 'asyncpg.exceptions._base.InterfaceError'>: connection is closed"
+  - `trace_id`: 36dcee934fd5269b17136bbb9c8a2811
+  - `event`: db_query
+  - `severity`: ERROR
+
+![VictoriaLogs query screenshot](docs/task-3-victorialogs.png)
 
 ## Task 3B — Traces
 
-<!-- Screenshots: healthy trace span hierarchy, error trace -->
+**Healthy trace (Trace ID: f75835f24b92615c805f1cfd5b730d22):**
+- 8 spans showing:
+  - connect (duration: 174074μs)
+  - SELECT db-lab-8 (duration: 16531μs)
+  - GET /items/ http send (multiple spans for response handling)
+- All spans completed successfully with status 200
+
+**Error trace (Trace ID: 36dcee934fd5269b17136bbb9c8a2811):**
+- Spans show the database error:
+  - SELECT db-lab-8 span has `error: true` tag
+  - `otel_status_description`: "connection is closed"
+  - HTTP response shows status 404 (Items not found)
+- The failure occurs in the db_query span (SQLAlchemy asyncpg)
+
+![Healthy trace screenshot](docs/task-3-trace-healthy.png)
+![Error trace screenshot](docs/task-3-trace-error.png)
 
 ## Task 3C — Observability MCP tools
 
-<!-- Paste agent responses to "any errors in the last hour?" under normal and failure conditions -->
+**Normal condition (no errors):**
+> Good news! There are **no errors** in the LMS backend (Learning Management Service) in the last 10 minutes. The system appears to be running smoothly.
+
+**Failure condition (PostgreSQL down):**
+> Yes, there are **3 errors** in the LMS backend in the last 10 minutes. All are database connectivity issues:
+> 
+> **Error Type**: `asyncpg.exceptions._base.InterfaceError` - connection is closed
+> 
+> This indicates the database became unavailable during the request, causing the backend to fail when trying to query items. The LMS was unable to connect to PostgreSQL, resulting in failed requests with 404 "Items not found" responses.
 
 ## Task 4A — Multi-step investigation
 
