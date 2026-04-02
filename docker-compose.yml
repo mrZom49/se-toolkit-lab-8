@@ -131,7 +131,7 @@ services:
       - NANOBOT_WEBCHAT_CONTAINER_ADDRESS=${NANOBOT_WEBCHAT_CONTAINER_ADDRESS:?'NANOBOT_WEBCHAT_CONTAINER_ADDRESS is required'}
       - NANOBOT_WEBCHAT_CONTAINER_PORT=${NANOBOT_WEBCHAT_CONTAINER_PORT:?'NANOBOT_WEBCHAT_CONTAINER_PORT is required'}
       - NANOBOT_ACCESS_KEY=${NANOBOT_ACCESS_KEY:?'NANOBOT_ACCESS_KEY is required'}
-      - PYTHONPATH=/app/mcp/mcp-lms/src:/app/nanobot-websocket-channel/mcp-webchat/src
+      - PYTHONPATH=/app/mcp/mcp-lms/src:/app/mcp/mcp-obs/src:/app/nanobot-websocket-channel/mcp-webchat/src
       - OTEL_SERVICE_NAME=nanobot
       - OTEL_TRACES_EXPORTER=otlp
       - OTEL_METRICS_EXPORTER=none

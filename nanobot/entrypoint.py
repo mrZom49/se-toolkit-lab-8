@@ -14,6 +14,8 @@ def main() -> None:
     gateway_port = os.environ.get("NANOBOT_GATEWAY_CONTAINER_PORT")
     lms_backend_url = os.environ.get("NANOBOT_LMS_BACKEND_URL")
     lms_api_key = os.environ.get("NANOBOT_LMS_API_KEY")
+    victorialogs_url = os.environ.get("NANOBOT_VICTORIALOGS_URL")
+    victoriatraces_url = os.environ.get("NANOBOT_VICTORIATRACES_URL")
     webchat_host = os.environ.get("NANOBOT_WEBCHAT_CONTAINER_ADDRESS")
     webchat_port = os.environ.get("NANOBOT_WEBCHAT_CONTAINER_PORT")
     access_key = os.environ.get("NANOBOT_ACCESS_KEY")
@@ -70,6 +72,33 @@ def main() -> None:
             "env": {
                 "NANOBOT_LMS_BACKEND_URL": lms_backend_url or "",
                 "NANOBOT_LMS_API_KEY": lms_api_key or "",
+            },
+        }
+
+    if "mcp-obs" in config["tools"]["mcpServers"]:
+        if "command" not in config["tools"]["mcpServers"]["mcp-obs"]:
+            config["tools"]["mcpServers"]["mcp-obs"]["command"] = (
+                "/app/.venv/bin/python"
+            )
+        if "args" not in config["tools"]["mcpServers"]["mcp-obs"]:
+            config["tools"]["mcpServers"]["mcp-obs"]["args"] = ["-m", "mcp_obs"]
+        if "env" not in config["tools"]["mcpServers"]["mcp-obs"]:
+            config["tools"]["mcpServers"]["mcp-obs"]["env"] = {}
+        if victorialogs_url:
+            config["tools"]["mcpServers"]["mcp-obs"]["env"][
+                "NANOBOT_VICTORIALOGS_URL"
+            ] = victorialogs_url
+        if victoriatraces_url:
+            config["tools"]["mcpServers"]["mcp-obs"]["env"][
+                "NANOBOT_VICTORIATRACES_URL"
+            ] = victoriatraces_url
+    else:
+        config["tools"]["mcpServers"]["mcp-obs"] = {
+            "command": "/app/.venv/bin/python",
+            "args": ["-m", "mcp_obs"],
+            "env": {
+                "NANOBOT_VICTORIALOGS_URL": victorialogs_url or "",
+                "NANOBOT_VICTORIATRACES_URL": victoriatraces_url or "",
             },
         }
 
