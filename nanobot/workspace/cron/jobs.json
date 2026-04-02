@@ -1,4 +1,71 @@
 {
   "version": 1,
-  "jobs": []
+  "jobs": [
+    {
+      "id": "4818e617",
+      "name": "🐾 LMS Health Check: Check for ",
+      "enabled": true,
+      "schedule": {
+        "kind": "every",
+        "atMs": null,
+        "everyMs": 120000,
+        "expr": null,
+        "tz": null
+      },
+      "payload": {
+        "kind": "agent_turn",
+        "message": "🐾 LMS Health Check: Check for backend errors in the last 2 minutes using observability tools, inspect traces if errors found, and post a summary to webchat channel f6db0590-6016-4b8d-85b3-6e7bbf2efaec",
+        "deliver": true,
+        "channel": "webchat",
+        "to": "f6db0590-6016-4b8d-85b3-6e7bbf2efaec"
+      },
+      "state": {
+        "nextRunAtMs": 1775148882685,
+        "lastRunAtMs": 1775148711887,
+        "lastStatus": "ok",
+        "lastError": null,
+        "runHistory": [
+          {
+            "runAtMs": 1775147962966,
+            "status": "ok",
+            "durationMs": 50454,
+            "error": null
+          },
+          {
+            "runAtMs": 1775148133424,
+            "status": "ok",
+            "durationMs": 37812,
+            "error": null
+          },
+          {
+            "runAtMs": 1775148291270,
+            "status": "ok",
+            "durationMs": 22111,
+            "error": null
+          },
+          {
+            "runAtMs": 1775148433419,
+            "status": "ok",
+            "durationMs": 17722,
+            "error": null
+          },
+          {
+            "runAtMs": 1775148571172,
+            "status": "ok",
+            "durationMs": 20687,
+            "error": null
+          },
+          {
+            "runAtMs": 1775148711887,
+            "status": "ok",
+            "durationMs": 50798,
+            "error": null
+          }
+        ]
+      },
+      "createdAtMs": 1775147842964,
+      "updatedAtMs": 1775148762685,
+      "deleteAfterRun": false
+    }
+  ]
 }
